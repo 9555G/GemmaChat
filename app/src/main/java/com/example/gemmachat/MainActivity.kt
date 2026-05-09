@@ -691,4 +691,19 @@ fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor   = MaterialTheme.colorScheme.onSurface,
     cursorColor          = Color(0xFF4FC3F7),
     focusedLabelColor    = Color(0xFF4FC3F7)
+
 )
+grep -r "@Composable" .
+
+cd ~/GemmaChat/GemmaChat2
+
+nano app/src/main/java/com/example/gemmachat/GemmaEngine.kt
+LlmInference.create(...)
+
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
+git add .
+git commit -m "fix llm session api"
+git push origin main
+
+
