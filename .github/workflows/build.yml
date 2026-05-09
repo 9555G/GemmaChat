@@ -18,6 +18,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Fix Gradle wrapper
+        run: |
+          cd /tmp
+          wget https://services.gradle.org/distributions/gradle-8.4-bin.zip
+          unzip -q gradle-8.4-bin.zip
+          ./gradle-8.4/bin/gradle wrapper --gradle-version 8.4 \
+            --project-dir $GITHUB_WORKSPACE
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
