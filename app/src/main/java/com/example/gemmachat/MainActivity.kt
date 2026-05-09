@@ -478,7 +478,7 @@ fun ModelsTab(vm: ChatViewModel, onNavigateToChat: () -> Unit) {
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Divider(color = MaterialTheme.colorScheme.outline)
 
         LazyColumn(
             contentPadding = PaddingValues(12.dp),
