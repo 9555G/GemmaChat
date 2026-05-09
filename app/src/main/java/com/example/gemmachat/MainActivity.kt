@@ -470,7 +470,7 @@ fun ModelsTab(vm: ChatViewModel, onNavigateToChat: () -> Unit) {
                         labelColor             = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     border = FilterChipDefaults.filterChipBorder(
-                        enabled = true, selected = selected,
+                        
                         selectedBorderColor = Color(0xFF4FC3F7).copy(alpha = 0.4f),
                         borderColor = MaterialTheme.colorScheme.outline
                     )
