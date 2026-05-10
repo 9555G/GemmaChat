@@ -40,12 +40,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun loadModel() {
         viewModelScope.launch {
             engineState.value = EngineState.Loading
+            // Note: first load copies file to internal storage (may take 1-2 min for large files)
             val result = engine.loadModel(modelPath.value)
             engineState.value = if (result.isSuccess) {
                 EngineState.Ready(
                     modelName    = modelPath.value.substringAfterLast("/"),
                     mtpActive    = false,
-                    speedupLabel = "Gemma 4 E4B • On-device"
+                    speedupLabel = "Model loaded • On-device inference"
                 )
             } else {
                 EngineState.Error(result.exceptionOrNull()?.message ?: "Load failed")
