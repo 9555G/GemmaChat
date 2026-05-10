@@ -284,7 +284,7 @@ fun ModelsTab(vm: ChatViewModel, onNavigate: () -> Unit) {
                     }
                     Spacer(Modifier.height(6.dp))
                     LinearProgressIndicator(
-                        progress = { ds.progress / 100f },
+                        progress = ds.progress / 100f,
                         modifier = Modifier.fillMaxWidth(),
                         color = Color(0xFF4FC3F7),
                         trackColor = MaterialTheme.colorScheme.outline
@@ -420,7 +420,7 @@ fun ModelCard(
                 }
                 Spacer(Modifier.height(4.dp))
                 LinearProgressIndicator(
-                    progress = { progress / 100f },
+                    progress = progress / 100f,
                     modifier = Modifier.fillMaxWidth(),
                     color = Color(0xFF4FC3F7),
                     trackColor = MaterialTheme.colorScheme.outline
