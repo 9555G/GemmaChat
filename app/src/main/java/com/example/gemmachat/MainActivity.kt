@@ -1,7 +1,6 @@
 package com.example.gemmachat
 
 import android.net.Uri
-import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.DocumentsContract
@@ -55,37 +54,31 @@ fun AppTheme(content: @Composable () -> Unit) {
     )
 }
 
-enum class Tab { CHAT, MODELS }
-
 @Composable
 fun GemmaChatApp(vm: ChatViewModel = viewModel()) {
-    var tab by remember { mutableStateOf(Tab.CHAT) }
     val state by vm.engineState
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar    = { TopBar(vm, state, tab) },
-        bottomBar = { BottomNav(tab) { tab = it } }
+        topBar = { TopBar(vm, state) }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when (tab) {
-                Tab.CHAT   -> ChatTab(vm, state)
-                Tab.MODELS -> ModelsTab(vm) { tab = Tab.CHAT }
-            }
+            ChatTab(vm, state)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(vm: ChatViewModel, state: EngineState, tab: Tab) {
+fun TopBar(vm: ChatViewModel, state: EngineState) {
     TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         title = {
             Column {
-                Text(
-                    if (tab == Tab.CHAT) "Gemma Chat" else "LiteRT Models",
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
-                )
+                Text("Gemma Chat",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold)
                 Text(
                     when (state) {
                         is EngineState.Ready   -> state.speedupLabel
@@ -99,32 +92,19 @@ fun TopBar(vm: ChatViewModel, state: EngineState, tab: Tab) {
             }
         },
         actions = {
-            if (state is EngineState.Ready && tab == Tab.CHAT) {
+            if (state is EngineState.Ready) {
                 IconButton(onClick = { vm.newChat() }) {
                     Icon(Icons.Filled.Add, "New Chat",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // Change model button
+                IconButton(onClick = { vm.engineState.value = EngineState.Idle }) {
+                    Icon(Icons.Filled.FolderOpen, "Change Model",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
     )
-}
-
-@Composable
-fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-        NavigationBarItem(
-            selected = current == Tab.CHAT,
-            onClick  = { onSelect(Tab.CHAT) },
-            icon     = { Icon(Icons.Filled.Chat, null) },
-            label    = { Text("Chat") }
-        )
-        NavigationBarItem(
-            selected = current == Tab.MODELS,
-            onClick  = { onSelect(Tab.MODELS) },
-            icon     = { Icon(Icons.Filled.List, null) },
-            label    = { Text("Models") }
-        )
-    }
 }
 
 // ════════════ CHAT TAB ════════════
@@ -134,7 +114,9 @@ fun ChatTab(vm: ChatViewModel, state: EngineState) {
     when (state) {
         is EngineState.Idle    -> SetupScreen(vm)
         is EngineState.Loading -> LoadingScreen()
-        is EngineState.Error   -> ErrorScreen(state.message) { vm.engineState.value = EngineState.Idle }
+        is EngineState.Error   -> ErrorScreen(state.message) {
+            vm.engineState.value = EngineState.Idle
+        }
         is EngineState.Ready   -> Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f)) { ChatMessages(vm) }
             ChatInput(vm)
@@ -245,17 +227,14 @@ fun SetupScreen(vm: ChatViewModel) {
 
         Spacer(Modifier.height(16.dp))
 
-        // Selected file indicator
+        // Selected file card
         if (modelPath.isNotBlank()) {
             Surface(
                 color = Color(0xFF4FC3F7).copy(alpha = 0.1f),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, null,
                         tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
@@ -282,7 +261,7 @@ fun SetupScreen(vm: ChatViewModel) {
             Spacer(Modifier.height(8.dp))
         }
 
-        // Manual path input (collapsible)
+        // Manual path toggle
         var showManual by remember { mutableStateOf(false) }
         TextButton(onClick = { showManual = !showManual }) {
             Text(
@@ -305,7 +284,6 @@ fun SetupScreen(vm: ChatViewModel) {
 
         Spacer(Modifier.height(16.dp))
 
-        // Load button
         Button(
             onClick = { vm.loadModel() },
             enabled = modelPath.isNotBlank(),
@@ -318,16 +296,16 @@ fun SetupScreen(vm: ChatViewModel) {
         ) {
             Icon(Icons.Filled.PlayArrow, null, tint = Color(0xFF003549))
             Spacer(Modifier.width(8.dp))
-            Text("Load Model", color = Color(0xFF003549), fontWeight = FontWeight.Bold,
+            Text("Load Model",
+                color = Color(0xFF003549),
+                fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleSmall)
         }
 
         Spacer(Modifier.height(20.dp))
-        Text(
-            "Supports  .task  •  .litertlm  •  .bin",
+        Text("Supports  .task  •  .litertlm  •  .bin",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -344,10 +322,12 @@ fun ChatMessages(vm: ChatViewModel) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("✨", fontSize = 40.sp)
-                Text("Gemma ready", style = MaterialTheme.typography.titleMedium,
+                Text("Model ready",
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface)
                 Text("Running fully on-device",
-                    style = MaterialTheme.typography.bodySmall, color = Color(0xFF4FC3F7))
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF4FC3F7))
             }
         }
     } else {
@@ -410,9 +390,11 @@ fun ChatInput(vm: ChatViewModel) {
             verticalAlignment = Alignment.Bottom
         ) {
             OutlinedTextField(
-                value = input, onValueChange = { input = it },
-                placeholder = { Text("Message Gemma...") },
-                modifier = Modifier.weight(1f), maxLines = 4,
+                value = input,
+                onValueChange = { input = it },
+                placeholder = { Text("Message...") },
+                modifier = Modifier.weight(1f),
+                maxLines = 4,
                 enabled = !isGenerating,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { send() }),
@@ -437,271 +419,6 @@ fun ChatInput(vm: ChatViewModel) {
     }
 }
 
-// ════════════ MODELS TAB ════════════
-
-@Composable
-fun ModelsTab(vm: ChatViewModel, onNavigate: () -> Unit) {
-    val context       = LocalContext.current
-    val downloadState by vm.downloadState
-    val hfToken       by vm.hfToken
-
-    Column(Modifier.fillMaxSize()) {
-
-        // HF Token row
-        Surface(color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.padding(12.dp)) {
-                Text("HuggingFace Token",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF4FC3F7), fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = hfToken,
-                        onValueChange = { vm.hfToken.value = it },
-                        placeholder = { Text("hf_xxxxxxxxxxxxxxxxxxxx") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        visualTransformation = PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW,
-                            Uri.parse("https://huggingface.co/settings/tokens")))
-                    }) {
-                        Icon(Icons.Filled.OpenInNew, null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Text("Required to download gated models like Gemma",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp))
-            }
-        }
-
-        Divider(color = MaterialTheme.colorScheme.outline)
-
-        // Download progress / result banners
-        when (val ds = downloadState) {
-            is DownloadState.Downloading -> {
-                Surface(color = Color(0xFF4FC3F7).copy(alpha = 0.08f)) {
-                    Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Downloading ${ds.modelId}...",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF4FC3F7))
-                            Text("${ds.progress}%",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF4FC3F7))
-                        }
-                        Spacer(Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = ds.progress / 100f,
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFF4FC3F7),
-                            trackColor = MaterialTheme.colorScheme.outline
-                        )
-                        TextButton(onClick = { vm.cancelDownload() }) {
-                            Text("Cancel", color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            is DownloadState.Done -> {
-                Surface(color = Color(0xFF4CAF50).copy(alpha = 0.08f)) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.CheckCircle, null,
-                                tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("${ds.modelId} ready!",
-                                color = Color(0xFF4CAF50),
-                                style = MaterialTheme.typography.labelMedium)
-                        }
-                        Row {
-                            TextButton(onClick = {
-                                vm.modelPath.value = ds.path
-                                vm.loadModel()
-                                onNavigate()
-                            }) {
-                                Text("Load Now", color = Color(0xFF4FC3F7),
-                                    style = MaterialTheme.typography.labelSmall)
-                            }
-                            TextButton(onClick = { vm.resetDownload() }) {
-                                Text("Dismiss",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                    }
-                }
-            }
-            is DownloadState.Failed -> {
-                Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.08f)) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text("❌ ${ds.error}",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.weight(1f))
-                        TextButton(onClick = { vm.resetDownload() }) {
-                            Text("OK", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            else -> {}
-        }
-
-        LazyColumn(
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(ModelCatalogue.all.size) { i ->
-                ModelCard(
-                    model         = ModelCatalogue.all[i],
-                    downloadState = downloadState,
-                    onOpen        = { url ->
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    },
-                    onDownload    = { model -> vm.downloadModel(model) },
-                    onUse         = { model -> vm.loadFromCatalogue(model); onNavigate() }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ModelCard(
-    model: LiteRTModel,
-    downloadState: DownloadState,
-    onOpen: (String) -> Unit,
-    onDownload: (LiteRTModel) -> Unit,
-    onUse: (LiteRTModel) -> Unit
-) {
-    val isDownloaded  = ModelDownloader.isDownloaded("${model.id}.task")
-    val isDownloading = downloadState is DownloadState.Downloading &&
-                        (downloadState as DownloadState.Downloading).modelId == model.id
-    val progress      = if (isDownloading)
-                            (downloadState as DownloadState.Downloading).progress else 0
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (model.isMTPDrafter)
-                Color(0xFF4FC3F7).copy(alpha = 0.05f)
-            else MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(Modifier.padding(14.dp)) {
-            Row(Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(model.name, fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface)
-                        if (model.isMTPDrafter) {
-                            Spacer(Modifier.width(6.dp))
-                            Surface(color = Color(0xFF4FC3F7).copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(4.dp)) {
-                                Text("MTP⚡",
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF4FC3F7))
-                            }
-                        }
-                        if (isDownloaded) {
-                            Spacer(Modifier.width(6.dp))
-                            Icon(Icons.Filled.CheckCircle, null,
-                                tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
-                        }
-                    }
-                    Text(model.variant, style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(
-                    if (model.sizeMB >= 1000) "${"%.1f".format(model.sizeMB / 1000f)}GB"
-                    else "${model.sizeMB}MB",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(Modifier.height(6.dp))
-            Text(model.description, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2, overflow = TextOverflow.Ellipsis)
-
-            if (isDownloading) {
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Downloading...", style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF4FC3F7))
-                    Text("$progress%", style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF4FC3F7))
-                }
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = progress / 100f,
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF4FC3F7),
-                    trackColor = MaterialTheme.colorScheme.outline
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedButton(
-                    onClick = { onOpen(model.hfUrl) },
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                ) {
-                    Icon(Icons.Filled.OpenInNew, null, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(3.dp))
-                    Text("HF", style = MaterialTheme.typography.labelSmall)
-                }
-                if (!isDownloaded && !isDownloading) {
-                    Button(
-                        onClick = { onDownload(model) },
-                        modifier = Modifier.weight(2f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F6FEB)),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Filled.Download, null,
-                            modifier = Modifier.size(14.dp), tint = Color.White)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Download", style = MaterialTheme.typography.labelSmall,
-                            color = Color.White)
-                    }
-                }
-                if (isDownloaded && !model.isMTPDrafter) {
-                    Button(
-                        onClick = { onUse(model) },
-                        modifier = Modifier.weight(2f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4FC3F7)),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Filled.PlayArrow, null,
-                            modifier = Modifier.size(14.dp), tint = Color(0xFF003549))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Load", style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF003549))
-                    }
-                }
-            }
-        }
-    }
-}
-
 // ════════════ UTILITY ════════════
 
 @Composable
@@ -710,12 +427,20 @@ fun LoadingScreen() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(color = Color(0xFF4FC3F7))
             Spacer(Modifier.height(16.dp))
-            Text("Loading model...", color = MaterialTheme.colorScheme.onSurface,
+            Text("Loading model...",
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyLarge)
-            Text("This may take 10–30 seconds",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp))
+            Spacer(Modifier.height(8.dp))
+            Surface(color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp)) {
+                Text(
+                    "First load copies file to internal storage.\nLarge files may take 1-2 minutes.",
+                    modifier = Modifier.padding(10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -726,12 +451,18 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("⚠️", fontSize = 48.sp)
             Spacer(Modifier.height(12.dp))
-            Text("Load failed", style = MaterialTheme.typography.titleMedium,
+            Text("Load failed",
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(8.dp))
-            Text(message, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center)
+            Surface(color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp)) {
+                Text(message,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center)
+            }
             Spacer(Modifier.height(20.dp))
             Button(onClick = onRetry) { Text("Try Again") }
         }
