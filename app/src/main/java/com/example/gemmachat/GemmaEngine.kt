@@ -28,9 +28,6 @@ class GemmaEngine(private val context: Context) {
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(modelPath)
                 .setMaxTokens(2048)
-                .setTopK(40)
-                .setTemperature(0.8f)
-                .setRandomSeed(101)
                 .build()
             llmInference = LlmInference.createFromOptions(context, options)
             isLoaded = true
@@ -43,7 +40,7 @@ class GemmaEngine(private val context: Context) {
         }
     }
 
-    fun startSession() { /* no-op */ }
+    fun startSession() { }
 
     fun sendMessage(
         userMessage: String,
