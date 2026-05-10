@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -269,7 +270,7 @@ fun ModelsTab(vm: ChatViewModel, onNavigate: () -> Unit) {
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Divider(color = MaterialTheme.colorScheme.outline)
 
         // Download progress banner
         if (downloadState is DownloadState.Downloading) {
@@ -459,7 +460,7 @@ fun ModelCard(
                         modifier = Modifier.weight(2f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4FC3F7)),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
-                        Icon(Icons.Filled.RocketLaunch, null, modifier = Modifier.size(14.dp),
+                        Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(14.dp),
                             tint = Color(0xFF003549))
                         Spacer(Modifier.width(4.dp))
                         Text("Load", style = MaterialTheme.typography.labelSmall, color = Color(0xFF003549))
