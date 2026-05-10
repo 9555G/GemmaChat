@@ -67,8 +67,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         downloadJob = viewModelScope.launch {
             downloadState.value = DownloadState.Downloading(model.id, 0)
             val fileMap = mapOf(
-                "gemma4-e4b"         to "google/gemma-4-E4B-it-litert/resolve/main/gemma-4-e4b-it-gpu-int4.task",
-                "gemma4-e2b"         to "google/gemma-4-E2B-it-litert/resolve/main/gemma-4-e2b-it-gpu-int4.task",
+                "gemma4-e4b"         to "google/gemma-4-E4B-it-litert-preview/resolve/main/gemma4-E4B-it-Q8_0.task",
+                "gemma4-e2b"         to "google/gemma-4-E2B-it-litert-preview/resolve/main/gemma4-E2B-it-Q8_0.task",
                 "gemma4-e4b-drafter" to "google/gemma-4-E4B-it-assistant/resolve/main/gemma-4-e4b-it-assistant.task",
                 "gemma4-e2b-drafter" to "google/gemma-4-E2B-it-assistant/resolve/main/gemma-4-e2b-it-assistant.task",
                 "gemma3n-e4b"        to "google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-e4b-it-int4.litertlm",
