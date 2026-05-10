@@ -12,8 +12,8 @@ class GemmaEngine(private val context: Context) {
 
     companion object {
         private const val TAG = "GemmaEngine"
-        const val DEFAULT_MODEL_PATH = "/sdcard/Download/gemma4.task"
-        const val DEFAULT_DRAFTER_PATH = "/sdcard/Download/gemma4-drafter.task"
+        const val DEFAULT_MODEL_PATH = ""
+        const val DEFAULT_DRAFTER_PATH = ""
     }
 
     private var llmInference: LlmInference? = null
@@ -27,11 +27,13 @@ class GemmaEngine(private val context: Context) {
         drafterPath: String? = null
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            // Copy model to internal storage so MediaPipe can open it
-            val internalPath = copyToInternal(modelPath)
+            // Get internal path - copy via URI or direct file
+            val internalPath = getInternalPath(modelPath)
                 ?: return@withContext Result.failure(
-                    Exception("Cannot read model file. Check file exists at:\n$modelPath")
+                    Exception("Cannot read model file.\nPath: $modelPath\n\nMake sure you selected the correct file.")
                 )
+
+            Log.d(TAG, "Loading from: $internalPath")
 
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(internalPath)
@@ -40,43 +42,91 @@ class GemmaEngine(private val context: Context) {
 
             llmInference = LlmInference.createFromOptions(context, options)
             isLoaded = true
-            Log.d(TAG, "Loaded from: $internalPath")
+            Log.d(TAG, "Model loaded OK")
             Result.success(Unit)
+
         } catch (e: Exception) {
-            Log.e(TAG, "Failed: ${e.message}", e)
+            Log.e(TAG, "Load failed: ${e.message}", e)
             isLoaded = false
             Result.failure(e)
         }
     }
 
-    /**
-     * Copy model file to app's internal files dir.
-     * MediaPipe can always read from internal storage.
-     * Returns the internal path, or null if copy failed.
-     */
-    private fun copyToInternal(sourcePath: String): String? {
+    private fun getInternalPath(modelPath: String): String? {
+        val destDir  = context.getExternalFilesDir(null) ?: context.filesDir
+        val destName = modelPath.substringAfterLast("/")
+            .replace(" ", "_")
+            .ifBlank { "model.task" }
+        val destFile = File(destDir, destName)
+
+        // 1. Already copied before - same size shortcut
+        if (destFile.exists() && destFile.length() > 1024) {
+            Log.d(TAG, "Using cached: ${destFile.absolutePath}")
+            return destFile.absolutePath
+        }
+
+        // 2. Try as content URI
+        if (modelPath.startsWith("content://")) {
+            return copyFromUri(Uri.parse(modelPath), destFile)
+        }
+
+        // 3. Try as direct file path
+        val srcFile = File(modelPath)
+        if (srcFile.exists()) {
+            return copyFile(srcFile, destFile)
+        }
+
+        // 4. Try common locations
+        val candidates = listOf(
+            "/sdcard/Download/$destName",
+            "/storage/emulated/0/Download/$destName",
+            "/sdcard/$destName"
+        )
+        for (path in candidates) {
+            val f = File(path)
+            if (f.exists()) {
+                Log.d(TAG, "Found at: $path")
+                return copyFile(f, destFile)
+            }
+        }
+
+        Log.e(TAG, "File not found: $modelPath")
+        return null
+    }
+
+    private fun copyFromUri(uri: Uri, destFile: File): String? {
         return try {
-            val sourceFile = File(sourcePath)
-            if (!sourceFile.exists()) {
-                Log.e(TAG, "Source file not found: $sourcePath")
-                return null
+            Log.d(TAG, "Copying from URI to ${destFile.absolutePath}")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                destFile.outputStream().use { output ->
+                    val buf = ByteArray(8192)
+                    var n: Int
+                    var total = 0L
+                    while (input.read(buf).also { n = it } != -1) {
+                        output.write(buf, 0, n)
+                        total += n
+                    }
+                    Log.d(TAG, "Copied ${total / 1024 / 1024}MB from URI")
+                }
             }
-
-            val destDir  = context.getExternalFilesDir(null) ?: context.filesDir
-            val destFile = File(destDir, sourceFile.name)
-
-            // Skip copy if already there and same size
-            if (destFile.exists() && destFile.length() == sourceFile.length()) {
-                Log.d(TAG, "Already in internal: ${destFile.absolutePath}")
-                return destFile.absolutePath
-            }
-
-            Log.d(TAG, "Copying ${sourceFile.length() / 1024 / 1024}MB to internal...")
-            sourceFile.copyTo(destFile, overwrite = true)
-            Log.d(TAG, "Copy done: ${destFile.absolutePath}")
             destFile.absolutePath
         } catch (e: Exception) {
-            Log.e(TAG, "Copy failed: ${e.message}", e)
+            Log.e(TAG, "URI copy failed: ${e.message}", e)
+            destFile.delete()
+            null
+        }
+    }
+
+    private fun copyFile(src: File, dest: File): String? {
+        return try {
+            if (dest.exists() && dest.length() == src.length()) {
+                return dest.absolutePath
+            }
+            Log.d(TAG, "Copying ${src.length() / 1024 / 1024}MB...")
+            src.copyTo(dest, overwrite = true)
+            dest.absolutePath
+        } catch (e: Exception) {
+            Log.e(TAG, "File copy failed: ${e.message}", e)
             null
         }
     }
