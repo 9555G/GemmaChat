@@ -18,19 +18,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Fix Gradle wrapper
+      - name: Download Gradle Wrapper JAR
         run: |
-          cd /tmp
-          wget https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
-          unzip -q gradle-8.11.1-bin.zip
-          ./gradle-8.4/bin/gradle wrapper --gradle-version 8.4 \
+          wget -q https://services.gradle.org/distributions/gradle-8.11.1-bin.zip -O /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp/gradle
+          /tmp/gradle/gradle-8.11.1/bin/gradle wrapper --gradle-version 8.11.1 \
             --project-dir $GITHUB_WORKSPACE
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --info
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
