@@ -4,75 +4,49 @@ import android.app.Application
 import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-data class ChatMessage(val text: String, val isUser: Boolean, val isStreaming: Boolean = false)
+data class ChatMessage(
+    val text: String,
+    val isUser: Boolean,
+    val isStreaming: Boolean = false
+)
 
 sealed class EngineState {
     object Idle : EngineState()
     object Loading : EngineState()
-    data class Ready(val modelName: String, val mtpActive: Boolean, val speedupLabel: String) : EngineState()
+    data class Ready(
+        val modelName: String,
+        val mtpActive: Boolean,
+        val speedupLabel: String
+    ) : EngineState()
     data class Error(val message: String) : EngineState()
-}
-
 }
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val engine = GemmaEngine(application)
 
-    val messages      = mutableStateListOf<ChatMessage>()
-    val engineState   = mutableStateOf<EngineState>(EngineState.Idle)
-    val isGenerating  = mutableStateOf(false)
-    val modelPath     = mutableStateOf(GemmaEngine.DEFAULT_MODEL_PATH)
-    val drafterPath   = mutableStateOf(GemmaEngine.DEFAULT_DRAFTER_PATH)
-    val useDrafter    = mutableStateOf(false)
+    val messages     = mutableStateListOf<ChatMessage>()
+    val engineState  = mutableStateOf<EngineState>(EngineState.Idle)
+    val isGenerating = mutableStateOf(false)
+    val modelPath    = mutableStateOf(GemmaEngine.DEFAULT_MODEL_PATH)
 
     fun loadModel() {
         viewModelScope.launch {
             engineState.value = EngineState.Loading
-            // Note: first load copies file to internal storage (may take 1-2 min for large files)
             val result = engine.loadModel(modelPath.value)
             engineState.value = if (result.isSuccess) {
                 EngineState.Ready(
                     modelName    = modelPath.value.substringAfterLast("/"),
                     mtpActive    = false,
-                    speedupLabel = "Model loaded • On-device inference"
+                    speedupLabel = "On-device inference"
                 )
             } else {
                 EngineState.Error(result.exceptionOrNull()?.message ?: "Load failed")
             }
         }
     }
-
-    fun loadFromCatalogue(model: LiteRTModel) {
-        modelPath.value = ModelDownloader.getDestPath("${model.id}.task")
-        loadModel()
-    }
-
-            return
-        }
-                "gemma4-e4b"         to "google/gemma-4-E4B-it-litert-preview/resolve/main/gemma4-E4B-it-Q8_0.task",
-                "gemma4-e2b"         to "google/gemma-4-E2B-it-litert-preview/resolve/main/gemma4-E2B-it-Q8_0.task",
-                "gemma4-e4b-drafter" to "google/gemma-4-E4B-it-assistant/resolve/main/gemma-4-e4b-it-assistant.task",
-                "gemma4-e2b-drafter" to "google/gemma-4-E2B-it-assistant/resolve/main/gemma-4-e2b-it-assistant.task",
-                "gemma3n-e4b"        to "google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-e4b-it-int4.litertlm",
-                "gemma3n-e2b"        to "google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-e2b-it-int4.litertlm",
-                "gemma3-1b"          to "google/gemma-3-1b-it-litert/resolve/main/gemma-3-1b-it-int4.task",
-                "deepseek-r1-1.5b"   to "litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/model.task",
-                "phi-2"              to "litert-community/Phi-2/resolve/main/model.task",
-                "qwen-1.5b"          to "litert-community/Qwen2.5-1.5B-Instruct/resolve/main/model.task"
-            )
-            val downloadUrl = "https://huggingface.co/$path"
-            val fileName = "${model.id}.task"
-            ModelDownloader.download(
-                hfUrl      = downloadUrl,
-                destName   = fileName,
-            )
-        }
-    }
-
 
     fun sendMessage(text: String) {
         if (text.isBlank() || isGenerating.value || !engine.isLoaded) return
@@ -83,12 +57,28 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         var accumulated = ""
         engine.sendMessage(
             userMessage = text,
-            onToken     = { tok -> accumulated += tok; messages[idx] = ChatMessage(accumulated, false, true) },
-            onComplete  = { messages[idx] = ChatMessage(accumulated, false, false); isGenerating.value = false },
-            onError     = { err -> messages[idx] = ChatMessage("⚠️ $err", false, false); isGenerating.value = false }
+            onToken     = { tok ->
+                accumulated += tok
+                messages[idx] = ChatMessage(accumulated, false, true)
+            },
+            onComplete  = {
+                messages[idx] = ChatMessage(accumulated, false, false)
+                isGenerating.value = false
+            },
+            onError     = { err ->
+                messages[idx] = ChatMessage("⚠️ $err", false, false)
+                isGenerating.value = false
+            }
         )
     }
 
-    fun newChat() { messages.clear(); engine.startSession() }
-    override fun onCleared() { super.onCleared(); engine.close() }
+    fun newChat() {
+        messages.clear()
+        engine.startSession()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        engine.close()
+    }
 }
