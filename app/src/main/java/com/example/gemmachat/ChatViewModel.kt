@@ -16,11 +16,6 @@ sealed class EngineState {
     data class Error(val message: String) : EngineState()
 }
 
-sealed class DownloadState {
-    object Idle : DownloadState()
-    data class Downloading(val modelId: String, val progress: Int) : DownloadState()
-    data class Done(val modelId: String, val path: String) : DownloadState()
-    data class Failed(val modelId: String, val error: String) : DownloadState()
 }
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
@@ -33,9 +28,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val modelPath     = mutableStateOf(GemmaEngine.DEFAULT_MODEL_PATH)
     val drafterPath   = mutableStateOf(GemmaEngine.DEFAULT_DRAFTER_PATH)
     val useDrafter    = mutableStateOf(false)
-    val downloadState = mutableStateOf<DownloadState>(DownloadState.Idle)
-    val hfToken       = mutableStateOf("")
-    private var downloadJob: Job? = null
 
     fun loadModel() {
         viewModelScope.launch {
@@ -59,15 +51,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         loadModel()
     }
 
-    fun downloadModel(model: LiteRTModel) {
-        if (hfToken.value.isBlank()) {
-            downloadState.value = DownloadState.Failed(model.id, "Enter your HuggingFace token first")
             return
         }
-        downloadJob?.cancel()
-        downloadJob = viewModelScope.launch {
-            downloadState.value = DownloadState.Downloading(model.id, 0)
-            val fileMap = mapOf(
                 "gemma4-e4b"         to "google/gemma-4-E4B-it-litert-preview/resolve/main/gemma4-E4B-it-Q8_0.task",
                 "gemma4-e2b"         to "google/gemma-4-E2B-it-litert-preview/resolve/main/gemma4-E2B-it-Q8_0.task",
                 "gemma4-e4b-drafter" to "google/gemma-4-E4B-it-assistant/resolve/main/gemma-4-e4b-it-assistant.task",
@@ -79,22 +64,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 "phi-2"              to "litert-community/Phi-2/resolve/main/model.task",
                 "qwen-1.5b"          to "litert-community/Qwen2.5-1.5B-Instruct/resolve/main/model.task"
             )
-            val path = fileMap[model.id] ?: "${model.hfUrl.removePrefix("https://huggingface.co/")}/resolve/main/model.task"
             val downloadUrl = "https://huggingface.co/$path"
             val fileName = "${model.id}.task"
             ModelDownloader.download(
                 hfUrl      = downloadUrl,
-                hfToken    = hfToken.value.trim(),
                 destName   = fileName,
-                onProgress = { pct -> downloadState.value = DownloadState.Downloading(model.id, pct) },
-                onComplete = { filePath -> downloadState.value = DownloadState.Done(model.id, filePath) },
-                onError    = { err -> downloadState.value = DownloadState.Failed(model.id, err) }
             )
         }
     }
 
-    fun cancelDownload() { downloadJob?.cancel(); downloadState.value = DownloadState.Idle }
-    fun resetDownload()  { downloadState.value = DownloadState.Idle }
 
     fun sendMessage(text: String) {
         if (text.isBlank() || isGenerating.value || !engine.isLoaded) return
