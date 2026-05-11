@@ -18,11 +18,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Download Gradle Wrapper JAR
+      - name: Fix Gradle wrapper
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.11.1-bin.zip -O /tmp/gradle.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip -O /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp/gradle
-          /tmp/gradle/gradle-8.11.1/bin/gradle wrapper --gradle-version 8.11.1 \
+          /tmp/gradle/gradle-8.4/bin/gradle wrapper --gradle-version 8.4 \
             --project-dir $GITHUB_WORKSPACE
 
       - name: Make gradlew executable
