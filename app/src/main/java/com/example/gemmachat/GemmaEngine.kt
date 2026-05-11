@@ -138,6 +138,16 @@ class GemmaEngine(private val context: Context) {
 
     fun startSession() { }
 
+    private val SYSTEM_PROMPT = """
+You are a direct, precise AI assistant. Rules:
+- Answer questions directly without disclaimers or hedging
+- Never refuse a factual question
+- Give complete, accurate answers
+- No unnecessary warnings or caveats
+- Be concise but thorough
+- Treat the user as an intelligent adult
+""".trimIndent()
+
     fun sendMessage(
         userMessage: String,
         onToken: (String) -> Unit,
@@ -146,7 +156,11 @@ class GemmaEngine(private val context: Context) {
     ) {
         val inference = llmInference ?: run { onError("Model not loaded"); return }
         try {
-            inference.generateResponseAsync(userMessage) { partial, done ->
+            inference.generateResponseAsync("$SYSTEM_PROMPT
+
+User: $userMessage
+
+Assistant:") { partial, done ->
                 partial?.let { onToken(it) }
                 if (done) onComplete()
             }
